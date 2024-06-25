@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Code Audit</title>
+    <script src="https://cdn.jsdelivr.net/npm/web3@1.5.2/dist/web3.min.js"></script>
+  </head>
+  <body>
+    <h1>Code Audit Service</h1>
+    <p>
+      To use the code audit service, please transfer the required amount to the
+      developer's wallet address using MetaMask:
+    </p>
+    <p>
+      <strong>Developer's Wallet Address:</strong>
+      <span id="developer-wallet-address"></span>
+    </p>
+    <button id="connect-button">Connect MetaMask</button>
+    <button id="transfer-button" disabled>Transfer</button>
+    <form
+      id="upload-form"
+      action="{{ url_for('main.upload_file') }}"
+      method="post"
+      enctype="multipart/form-data"
+    >
+      <input type="file" name="file" required />
+      <input type="hidden" id="wallet-address" name="wallet_address" />
+      <button type="submit" disabled>Upload</button>
+    </form>
+
+    <script>
+      document.addEventListener("DOMContentLoaded", () => {
+        const developerWalletAddress = "{{ developer_wallet_address }}";
+        document.getElementById("developer-wallet-address").innerText =
+          developerWalletAddress;
+
+        let userWalletAddress;
+
+        if (typeof window.ethereum !== "undefined") {
+          const web3 = new Web3(window.ethereum);
+
+          document
+            .getElementById("connect-button")
+            .addEventListener("click", async () => {
+              try {
+                const accounts = await window.ethereum.request({
+                  method: "eth_requestAccounts",
+                });
+                userWalletAddress = accounts[0];
+                document.getElementById("wallet-address").value =
+                  userWalletAddress;
+                document.getElementById("transfer-button").disabled = false;
+              } catch (error) {
+                console.error("User denied account access");
+              }
+            });
+
+          document
+            .getElementById("transfer-button")
+            .addEventListener("click", async () => {
+              try {
+                const amount = web3.utils.toWei("0.01", "ether"); // 设置转账金额
+                const transactionParameters = {
+                  to: developerWalletAddress,
+                  from: userWalletAddress,
+                  value: amount,
+                };
+
+                await window.ethereum.request({
+                  method: "eth_sendTransaction",
+                  params: [transactionParameters],
+                });
+
+                document
+                  .getElementById("upload-form")
+                  .querySelector('button[type="submit"]').disabled = false;
+              } catch (error) {
+                console.error("Transaction failed", error);
+              }
+            });
+        } else {
+          console.error("MetaMask is not installed");
+        }
+      });
+    </script>
+  </body>
+</html>
